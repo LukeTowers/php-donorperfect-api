@@ -1,4 +1,4 @@
-<?php namespace LukeTowers\DonorPerfect\Classes;
+<?php namespace LukeTowers\DonorPerfectPHP;
 
 use Exception;
 use GuzzleHttp\Client;
