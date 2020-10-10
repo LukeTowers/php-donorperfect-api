@@ -39,6 +39,9 @@ $result = $api->call('dp_actionname', DonorPerfect::prepareParams(['donor_id' =>
 ### Run a custom MS SQL statement through the API
 
 ```php
+$pageStart = 1;
+$pageEnd = 500;
+
 // Run a custom MS SQL statement through the API
 $result = $api->callSql("
     SELECT
