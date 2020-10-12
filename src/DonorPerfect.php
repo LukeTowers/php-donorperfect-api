@@ -558,33 +558,188 @@ class DonorPerfect
     public function dp_savepledge($data)
     {
         return $this->call('dp_savepledge', static::prepareParams($data, [
-            'gift_id'             =>['numeric'], // Enter 0 in this field to create a new pledge or the gift ID of an existing pledge.
-            'donor_id'            =>['numeric'], // Enter the donor_id of the person for whom the pledge is being created/updated
-            'gift_date'           =>['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
-            'start_date'          =>['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
-            'total'               =>['money'], // Enter either the total amount to be pledged (the sum of all the expected payment amounts) or enter 0 (zero) if the pledge amount is to be collected adinfinitum
-            'bill'                =>['money'], // Enter the individual monthly/quarterly/annual billing amount
-            'frequency'           =>['string', 30], // Enter one of: M (monthly), Q (quarterly), S (semi-annually), A (annually)
-            'reminder'            =>['string', 1], // Sets the pledge reminder flag
-            'gl_code'             =>['string', 30], // Note: If you are not setting a gl_code value in this field, set the field to null. Do not ever set this field to empty ('').
-            'solicit_code'        =>['string', 30], // Note: If you are not setting a solicit_code value in this field, set the field to null. Do not ever set this field to empty ('').
-            'initial_payment'     =>['string', 1], // Set to ’Y’ for intial payment, otherwise ‘N’
-            'sub_solicit_code'    =>['string', 30], // Note: If you are not setting a sub_solicit_code value in this field, set the field to null. Do not ever set this field to empty ('').
-            'writeoff_amount'     =>['money'], //
-            'writeoff_date'       =>['datetime'], //
-            'user_id'             =>['string', 20], //,
-            'campaign'            =>['string', 30], // Note: If you are not setting a campaign_code value in this field, set the field to null. Do not ever set this field to empty ('').
-            'membership_type'     =>['string', 30], // Or NULL
-            'membership_level'    =>['string', 30], // Or NULL
-            'membership_enr_date' =>['datetime'], // Or NULL
-            'membership_exp_date' =>['datetime'], // Or NULL
-            'membership_link_ID'  =>['numeric'], // Or NULL
-            'address_id'          =>['numeric'], // Or NULL
-            'gift_narrative'      =>['string', 4000], // Or NULL
-            'ty_letter_no'        =>['string', 30], // Or NULL
-            'vault_id'            =>['numeric'], // This field must be populated from the Vault ID number returned by SafeSave for the pledge to be listed as active in the user interface.
-            'receipt_delivery_g'  =>['string', 1], // ‘E’ for email, ‘B’ for both email and letter, ‘L’ for letter, ‘N’ for do not acknowledge or NULL
-            'contact_id'          =>['numeric'], // Or NULL
+            'gift_id'             => ['numeric'], // Enter 0 in this field to create a new pledge or the gift ID of an existing pledge.
+            'donor_id'            => ['numeric'], // Enter the donor_id of the person for whom the pledge is being created/updated
+            'gift_date'           => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'start_date'          => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'total'               => ['money'], // Enter either the total amount to be pledged (the sum of all the expected payment amounts) or enter 0 (zero) if the pledge amount is to be collected adinfinitum
+            'bill'                => ['money'], // Enter the individual monthly/quarterly/annual billing amount
+            'frequency'           => ['string', 30], // Enter one of: M (monthly), Q (quarterly), S (semi-annually), A (annually)
+            'reminder'            => ['string', 1], // Sets the pledge reminder flag
+            'gl_code'             => ['string', 30], // Note: If you are not setting a gl_code value in this field, set the field to null. Do not ever set this field to empty ('').
+            'solicit_code'        => ['string', 30], // Note: If you are not setting a solicit_code value in this field, set the field to null. Do not ever set this field to empty ('').
+            'initial_payment'     => ['string', 1], // Set to ’Y’ for intial payment, otherwise ‘N’
+            'sub_solicit_code'    => ['string', 30], // Note: If you are not setting a sub_solicit_code value in this field, set the field to null. Do not ever set this field to empty ('').
+            'writeoff_amount'     => ['money'], //
+            'writeoff_date'       => ['datetime'], //
+            'user_id'             => $this->appName,
+            'campaign'            => ['string', 30], // Note: If you are not setting a campaign_code value in this field, set the field to null. Do not ever set this field to empty ('').
+            'membership_type'     => ['string', 30], // Or NULL
+            'membership_level'    => ['string', 30], // Or NULL
+            'membership_enr_date' => ['datetime'], // Or NULL
+            'membership_exp_date' => ['datetime'], // Or NULL
+            'membership_link_ID'  => ['numeric'], // Or NULL
+            'address_id'          => ['numeric'], // Or NULL
+            'gift_narrative'      => ['string', 4000], // Or NULL
+            'ty_letter_no'        => ['string', 30], // Or NULL
+            'vault_id'            => ['numeric'], // This field must be populated from the Vault ID number returned by SafeSave for the pledge to be listed as active in the user interface.
+            'receipt_delivery_g'  => ['string', 1], // ‘E’ for email, ‘B’ for both email and letter, ‘L’ for letter, ‘N’ for do not acknowledge or NULL
+            'contact_id'          => ['numeric'], // Or NULL
+        ]));
+    }
+
+    /**
+     * Saves fields to the DPCONTACT table. It will create a new or updated Contact record
+     * for the specified donor_id.
+     *
+     * @param array $data
+     * @return integer The contact_id of the created / updated record
+     */
+    public function dp_savecontact($data)
+    {
+        return $this->call('dp_savecontact', static::prepareParams($data, [
+            'contact_id'     => ['numeric'], // Enter 0 to create a new record or the other_id record number of an existing dpcontact record
+            'donor_id'       => ['numeric'], // Enter the Donor ID of the donor for whom the contact record is to be created or retrieved
+            'activity_code'  => ['string', 30], // CODE value for the Activity Code field. See DPO Settings > Code Maintenance > Activity Code / Contact Screen. The required valuesc will be listed in the Code column of the resulting display.
+            'mailing_code'   => ['string', 30], // CODE value for Mailing Code field
+            'by_whom'        => ['string', 30], // CODE value for the By Whom/Contact Screen field in DPO Description value of selected code shows in the ‘Assigned To’ field of the contact record.
+            'contact_date'   => ['date'], // Contact / Entry Date field in DPO
+            'due_date'       => ['date'], // Due Date field in DPO. Set as 'MM/DD/YYYY' only. Setting time values here is not supported.
+            'due_time'       => ['string', 20], // Time field in DPO. Enter as 'hh:mm xx' where xx is either AM or PM – e.g; '02:00 PM'.
+            'completed_date' => ['date'], // Completed Date field in DPO. Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'comment'        => ['string', 4000], // Contact Notes field in DPO
+            'document_path'  => ['string', 200], // Type a URL/File Path field in DPO
+            'user_id'        => $this->appName,
+        ]));
+    }
+
+    /**
+     * Returns a predefined set of fields associated with all gifts given by the specified donor.
+     *
+     * @param array $data
+     * @return integer other_id associated with the updated value This other_id value can now be
+     *                 used as a @matching_id value to save additional fields associated with the
+     *                 dpotherinfoudf table associated with this entry.
+     */
+    public function dp_saveotherinfo($data)
+    {
+        return $this->call('dp_saveotherinfo', static::prepareParams($data, [
+            'other_id'   => ['numeric'], // Enter 0 to create a new record or the other_id record number of an existing dpotherinfo record
+            'donor_id'   => ['numeric'], // Enter the donor_id for whom the record is to be created / updated.
+            'other_date' => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'comments'   => ['string', 4000],
+            'user_id'    => $this->appName,
+        ]));
+    }
+
+    /**
+     * Add or update secondary address values that appear in the DonorPerfect Online Address tab.
+     * These secondary addresses are also referred to as Seasonal Addresses in the DPO Knowledge Base.
+     *
+     * @param array $data
+     * @return integer the @address_id value of the newly created (or updated) DPADDRESS value.
+     */
+    public function dp_saveaddress($data)
+    {
+        return $this->call('dp_saveaddress', static::prepareParams($data, [
+            'address_id'         => ['numeric'], // Enter 0 in this field to create a new address value or the address_id number of an existing address_id to update the existing value
+            'donor_id'           => ['numeric'], // Specify the donor_id of the donor associated with this
+            'opt_line'           => ['string', 100], // Enter a secondary name or company name if appropriate
+            'address'            => ['string', 100], //
+            'address2'           => ['string', 100], //
+            'city'               => ['string', 50], //
+            'state'              => ['string', 30], //
+            'zip'                => ['string', 20], //
+            'country'            => ['string', 30], //
+            'address_type'       => ['string', 30], // Enter the CODE value associated with the address type
+            'getmail'            => ['string', 1], // Enter 'Y' or 'N' to indicate whether the Receive Mail box will be checked and to indicate whether mail can be sent to this address.
+            'user_id'            => $this->appName,
+            'title'              => ['string', 50], // Enter a value to be stored in the Professional Title field.
+            'first_name'         => ['string', 50], //
+            'middle_name'        => ['string', 50], //
+            'last_name'          => ['string', 75], //
+            'suffix'             => ['string', 50], //
+            'prof_title'         => ['string', 100], //
+            'salutation'         => ['string', 130], // Enter desired salutation value (e.g.; 'Dear Bob')
+            'seasonal_from_date' => ['string', 4], // Enter the 'from' date as MMYY – e.g; November 2017 would be represented as 1117
+            'seasonal_to_date'   => ['string', 4], // Enter the 'to' date as MMYY
+            'email'              => ['string', 75], //
+            'home_phone'         => ['string', 40], //
+            'business_phone'     => ['string', 40], //
+            'fax_phone'          => ['string', 40], //
+            'mobile_phone'       => ['string', 40], //
+            'address3'           => ['string', 100], //
+            'address4'           => ['string', 100], //
+            'ukcountry'          => ['string', 100], //
+            'org_rec'            => ['string', 1], // Enter 'Y' to check the Org Rec field (indicating an organizational record) or 'N' to leave it unchecked to indicate an individual record.
+        ]));
+    }
+
+    /**
+     * Saves a Donor’s extended information (User Defined Fields) — used to save changes
+     * to the user-defined fields that are custom for each client and are not part of the
+     * standard DPO system. This procedure will save a single parameter for a specified
+     * User Defined Field (UDF).
+     *
+     * @param array $data
+     * @return integer The donor_id associated with the updated value
+     */
+    public function dp_save_udf_xml($data)
+    {
+        return $this->call('dp_save_udf_xml', static::prepareParams($data, [
+            'matching_id'  => ['numeric'], // Specify either an existing donor_id value if updating a donor record, a gift_id value if updating a gift record, a contact_id number if updating a contact record or an other_id value if updating a dpotherinfo table value (see dp_saveotherinfo). If you are updating a value in the DPADDRESSUDF, specify the @address_ID as the matching ID. Also, FYI, you can link the DPADDRESS.ADDRESS_ID=DPADDRESSUDF.ADDRESS_ID in any of your SELECT queries.
+            'field_name'   => ['string', 20], //
+            'data_type'    => ['string', 1], // C- Character, D-Date, N- numeric
+            'char_value'   => ['string', 2000], // Null if not a Character field
+            'date_value'   => ['date'], // Null if not a Date field. Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'number_value' => ['numeric'], // Null if not a Number field
+            'user_id'      => $this->appName,
+        ]));
+    }
+
+    /**
+     * Add new code and description values to the DPCODES table. This would allow you
+     * to add things like new GL Code, Solicitation, Campaign code and other code values
+     * administered in the Code Maintenance screen of DPO. While this API call requires
+     * the specification of many fields, you will typically only supply the Field Name,
+     * Code, Description, & the Inactive field value
+     *
+     * @param array $data
+     * @return integer 0
+     */
+    public function dp_savecode($data)
+    {
+        return $this->call('dp_savecode', static::prepareParams($data, [
+            'field_name'        => ['string', 20], // Enter the name of an existing field type from the DPCODES table
+            'code'              => ['string', 30], // Enter the new CODE value
+            'description'       => ['string', 100], // Enter the description value that will appear in drop-down selection values
+            'original_code'     => ['string', 20], // Enter NULL
+            'code_date'         => ['date'], // Enter NULL
+            'mcat_hi'           => ['money'], // Enter NULL
+            'mcat_lo'           => ['money'], // Enter NULL
+            'mcat_gl'           => ['string', 1], // Enter NULL
+            'acct_num'          => ['string', 30], // Enter NULL
+            'campaign'          => ['string', 30], // Enter NULL
+            'solicit_code'      => ['string', 30], // Enter NULL
+            'overwrite'         => null,
+            'inactive'          => ['string', 1], // Enter 'N' for an active code or 'Y' for an inactive code. Inactive codes are not offered in the user interface dropdown lists. Set @inactive='N' to indicate that this entry is Active and will appear in the appropriate drop-down field in the user interface.
+            'client_id'         => null,
+            'available_for_sol' => null,
+            'user_id'           => $this->appName,
+            'cashact'           => null,
+            'membership_type'   => null,
+            'leeway_days'       => null,
+            'comments'          => ['string', 2000], // You may enter a comment of up to 2000 characters if you like.
+            'begin_date'        => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'end_date'          => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'ty_prioritize'     => ['string', 1], // Enter NULL
+            'ty_filter_id'      => null,
+            'ty_gift_option'    => null,
+            'ty_amount_option'  => null,
+            'ty_from_amount'    => null,
+            'ty_to_amount'      => null,
+            'ty_alternate'      => null,
+            'ty_priority'       => null,
         ]));
     }
 }
