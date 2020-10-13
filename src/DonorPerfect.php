@@ -198,8 +198,12 @@ class DonorPerfect
 
             if (is_numeric($value) && !str_contains($value, 'e')) {
                 $value = $value;
+            } elseif (is_bool($value)) {
+                $value = $value ? '1' : '0';
             } elseif (empty($value)) {
                 $value = 'NULL';
+            } elseif (is_array($value)) {
+                $value = "N'" . implode($value, '|') . "'";
             } else {
                 // Ensure quotes are doubled for escaping purposes
                 // @see https://api.warrenbti.com/2020/08/03/apostrophes-in-peoples-names/
@@ -318,6 +322,32 @@ class DonorPerfect
     {
         // @TODO: Implement the formatter to handle DateTime objects and strtotime strings to convert to datetime automatically
         return $value;
+    }
+
+    /**
+     * Prepare a value to be used as an array of values
+     *
+     * @param array $value
+     * @return array
+     */
+    public static function prepareArray($value)
+    {
+        if (!is_array($value)) {
+            throw new Exception("The provided value is not a valid array");
+        }
+
+        return $value;
+    }
+
+    /**
+     * Prepare a value to be used as a boolean
+     *
+     * @param mixed $value
+     * @return bool $value
+     */
+    public static function prepareBool($value)
+    {
+        return (bool) $value;
     }
 
     /**
@@ -740,6 +770,345 @@ class DonorPerfect
             'ty_to_amount'      => null,
             'ty_alternate'      => null,
             'ty_priority'       => null,
+        ]));
+    }
+
+    /**
+     * Create a link between two donors. These links show in the Links tab of the DPO user
+     * interface. Note that reciprocal links are created automatically. For example, if you
+     * create a Friend link (FR) link with donor A as the donor_id value and donor B as the
+     * donor_id2 value, you will automatically see the Friend link in the DPO user interface
+     * if you look at the Links tab in either donor A or donor B. Please also note that DPO
+     * will create appropriate reciprocal links in the same way it does via the user interface.
+     * So, if you create a Parent link from donor A to donor B, then donor B will show donor
+     * A as a Child link.
+     *
+     * @param array $data
+     * @return integer link_id of the created link
+     */
+    public function dp_savelink($data)
+    {
+        return $this->call('dp_savelink', static::prepareParams($data, [
+            'link_id'    => ['numeric'], // Enter zero (0) to create a new link entry of the link_id of an existing entry if you are updating an existing entry
+            'donor_id'   => ['numeric'], // Enter the donor_id of the donor where the link is being created
+            'donor_id2'  => ['numeric'], // Enter the donor_id of the OTHER donor involved in the link
+            'link_code'  => ['string', 30], //  Enter the CODE value of the link per the Link Type values shown in the Code Maintenance screen of the DPO user interface
+            'user_id'    => $this->appName,
+        ]));
+    }
+
+    /**
+     * Set a checkbox value. Checkbox fields in DPO are stored in the DPUSERMULTIVALUES
+     * table and use a MATCHING_ID value as the index. The MATCHING_ID value corresponds
+     * to the associated DONOR_ID. Note that even though a checkbox field may contain
+     * many checkboxes, there will only be an entry present in DPUSERMULTIVALUES for
+     * checkboxes that are set (checked).
+     *
+     * @param array $data
+     * @return integer donor_id of the affected donor
+     */
+    public function dp_savemultivalue_xml($data)
+    {
+        return $this->call('dp_savemultivalue_xml', static::prepareParams($data, [
+            'matching_id' => ['numeric'], // Specify the desired donor_id
+            'field_name'  => ['string', 20], // Use the code value associated with the flag. For example, the ‘AL’, flag in this example had a description value of ‘Alumni’.
+            'code'        => ['string', 30], // Enter the Code value of the checkbox entry you wish to set
+            'user_id'     => $this->appName,
+        ]));
+    }
+
+    /**
+     * Set field values for an individual checkbox field. Any values not specified will be unset
+     * (unchecked). This is the call to use instead of dp_deletemultivalues_xml if you ever need
+     * to unset (uncheck) a checkbox field because it allows you to modify a single checkbox field
+     * instead of having to retrieve all checkbox fields for the screen tab and re-set them.
+     *
+     * Depending on what you need to do, you can probably also use this instead of the
+     * dp_savemultivalues_xml API call as well – as it allows you to set (check) checkboxes as
+     * well as un-set them. Also, please note that the field specifications are slightly different
+     * than the usual when you are entering the command string – e.g.; matchingid is correct.
+     * matching_id is incorrect.
+     *
+     * @param array $data
+     * @return array|null
+     */
+    public function mergemultivalues($data)
+    {
+        return $this->call('mergemultivalues', static::prepareParams($data, [
+            'matchingid'  => ['numeric'], //  Specify the desired donor_id
+            'fieldname'   => ['string', 20], // Enter the name of the checkbox field name.
+            'valuestring' => ['string', 20], // Enter any CODE values to be set. Separate with commas. Any code values not specified will be unset (unchecked).
+            'debug'       => ['numeric'], // Specification of this field is optional but if you want to return the list of checkbox fields and the values in them after running this command then add debug=1 as a parameter to this API call. If a code was previously set but was not specified in your mergemultivalues API call then it will show as a DeletedCode value. If a value was not previously set but was specified in your API call, then it will show as an InsertedCode.
+        ]));
+    }
+
+    /**
+     * Deletes ALL checked checkbox values on the specified screen tab (e.g.; Main, Gift,
+     * Pledge,Bio, Other) for the specified donor. Checkbox fields in DPO are stored in
+     * the DPUSERMULTIVALUES table and use a MATCHING_ID value as the index. The MATCHING_ID
+     * value corresponds to the associated DONOR_ID. Note that even though a checkbox field
+     * may contain many checkboxes, there will only be an entry present in DPUSERMULTIVALUES
+     * for checkboxes that are set (checked). We recommend that before using this API call,
+     * you use a dynamic SELECT statement to retrieve all set (checked) values for the
+     * specified donor. This will allow you to follow the delete API call with
+     * dp_savemultivalues_xml API calls to reset/check the checkbox fields you did not want
+     * deleted.
+     *
+     * This API call removes ALL checked values from the specified DPO screen tab.
+     *
+     * @param array $data
+     * @return integer donor_id of the affected donor
+     */
+    public function dp_deletemultivalues_xml($data)
+    {
+        return $this->call('dp_deletemultivalues_xml', static::prepareParams($data, [
+            'matching_id' => ['numeric'], // Specify the desired donor_id
+            'table_name'  => ['string', 20], // Enter the name of the DPO screen tab (i.e. MAIN, GIFT, PLEDGE, BIO, OTHER) where all checked fields are to be deleted
+            'user_id'     => $this->appName,
+        ]));
+    }
+
+    /**
+     * Set flags as shown in the top section of the Main tab. The Flags field is on the
+     * Main tab in the DPO user interface. Flags must have been previously created in
+     * Settings > Code Maintenance and the value you set corresponds to the Code value,
+     * not the description value.
+     *
+     * @param array $data
+     * @return integer donor_id of the affected donor
+     */
+    public function dp_saveflag_xml($data)
+    {
+        return $this->call('dp_saveflag_xml', static::prepareParams($data, [
+            'donor_id' => ['numeric'], // Specify either a donor_id value if updating a donor record, a gift_id value if updating a gift record or an other_id value if updating a dpotherinfo table value (see dp_saveotherinfo)
+            'flag'     => ['string', 30], // Use the code value associated with the flag. For example, the ‘AL’, flag in this example had a description value of ‘Alumni’.
+            'user_id'  => $this->appName,
+        ]));
+    }
+
+    /**
+     * Removes (deletes) all flags for the specified donor. Flags are shown on the
+     * main donor screen in DPO. It is not currently possible to delete individual
+     * flags for a specified donor. This command deletes all flags set for the specified
+     * donor_id. To view the flags set for a specified donor, use a SELECT query to
+     * retrieve a list of all set flags for the specified donor. You will use this
+     * list of set flags to re-set all flags you did not want un-set for the specified
+     * donor: SELECT * FROM DPFLAGS WHERE DONOR_ID={desired donor_id}
+     *
+     * See dp_saveflag_xml for information on setting flags
+     *
+     * @param array $data
+     * @return integer donor_id of the affected donor
+     */
+    public function dp_delflags_xml($data)
+    {
+        return $this->call('dp_delflags_xml', static::prepareParams($data, [
+            'donor_id' => ['numeric'], // Specify the donor_id of the donor for whom the flags (all of them) are to be deleted
+            'user_id'  => $this->appName,
+        ]));
+    }
+
+    /**
+     * Retrieves either a list of All tributes or All Active tributes
+     * (<field id="ActiveFlg" value="True" name="ActiveFlg")
+     *
+     * @param array $data
+     * @return array
+     */
+    public function dp_tribAnon_MyTribSummary($data)
+    {
+        return $this->call('dp_tribAnon_MyTribSummary', static::prepareParams($data, [
+            'ShowAllRecords' => ['numeric'], // If set to 1, retrieves all tributes If set to 0, retrieves all ACTIVE tributes but does not include inactive tributes – i.e.; tributes where the ActiveFlg='False'
+            'userId'  => null,
+        ]));
+    }
+
+    /**
+     * Search for a tribute by the tribute name and either include or exclude
+     * inactive tributes. If you already have a tribute that has the same type
+     * (CodeDescription) as one you are trying to create, you can use the matching
+     * DPCode_ID value.
+     *
+     * @param array $data
+     * @return array
+     */
+    public function dp_tribAnon_Search($data)
+    {
+        return $this->call('dp_tribAnon_Search', static::prepareParams($data, [
+            'Keywords'        => ['string', 200], // Enter all or part of the tribute name to retrieve data on each matching tribute.
+            'IncludeInactive' => ['numeric'], // Enter 1 to include inactive tributes (ActiveFlg=False) or enter 0 to exclude these.
+        ]));
+    }
+
+    /**
+     * Create a new tribute in DonorPerfect Online (DPO)
+     *
+     * @param array $data
+     * @return null
+     */
+    public function dp_tribAnon_Create($data)
+    {
+        return $this->call('dp_tribAnon_Create', static::prepareParams($data, [
+            'Name'         => ['string', 200], // Specify the name that will be used for the tribute
+            'DPCodeID'     => ['numeric'], // This is the numeric code_ID value that is associated with the tribute type. The standard values are M (In Memory Of) and H (In Honor Of) but you will not be specifying the letter value here but rather the numeric value of the code_ID. You can get the required @code_id value with this SQL SELECT query: SELECT CODE, CODE_ID, DESCRIPTION FROM DPCODES WHERE FIELD_NAME = 'MEMORY_HONOR' Run the query and record the CODE_ID values. They will not change for your DonorPerfect system. If you are connecting to multiple DonorPerfect systems, you will need to run this once for each system you are connecting to and store the values.
+            'ActiveFlg'    => ['bool'], // Enter 1 here to make the tribute active or 0 to make it inactive.
+            'UserCreateDt' => ['date'], // Enter the current date in this format: mm/dd/yyyy and place single quotes around the date. Entry of time values is NOT supported.
+            'Recipients'   => ['string'], // Enter either the donor_id of a single recipient OR multiple donor_id values separated by the pipe symbol and wrapped in single quotes. See examples below. The second example shows four donor ID numbers (11101, 22202, 33303, 44404) being assigned as Recipients and then in the Returns section below that, you can see the  names of the donors who correspond to those donor ID numbers. Note: It is possible to create a tribute without specifying any @recipients by omitting this parameter.
+        ]));
+    }
+
+    /**
+     * Create the association between a gift and a tribute by specifying the
+     * GIFT_ID and the TributeID_List. Once you have associated a tribute to
+     * a gift, the tribute will show in the Tribute Details section of the
+     * gift screen.
+     *
+     * @param array $data
+     * @return integer The TributeID
+     */
+    public function dp_tribAnon_AssocTribsToGift($data)
+    {
+        return $this->call('dp_tribAnon_AssocTribsToGift', static::prepareParams($data, [
+            'Gift_ID'        => ['numeric'], // Specify the GIFT_ID of the gift that will be associated with the specified tribute
+            'TributeID_List' => ['string'], // Enter the TributeID of the tribute. You can optionally enter a comma separated list of tribute ID numbers – e.g.; 9, 12, 33 Tribute IDs are included in the data retrieved in the dp_tribAnon_MyTribSummary API call.
+        ]));
+    }
+
+    /**
+     * Add a new recipient notification for a particular gift (This gift):
+     * When you have a gift that already has tribute(s) applied to it, the
+     * user interface shows an option to Add a Recipient. The resulting window
+     * gives you the opportunity to send a notification to an additional
+     * recipient, and specifically, for just this gift. This API call supports
+     * that functionality.
+     *
+     * To locate the recipient in the DPO user interface: 1. Go to Tributes
+     * under the cog icon (top right hand corner of user interface) 2. Search
+     * for and select the tribute by its Tribute ID number (above) 3. You
+     * should see the recipient donor under the 'Send Notifications To' text
+     * The dp_tribNotif_Save API call should be run after the dp_tribAnon_SaveTribRecipient
+     * API call to make sure that the actual notification record is created
+     * for the recipient of the notification.
+     *
+     * @param array $data
+     * @return null Unsure what this returns, undocumented
+     */
+    public function dp_tribAnon_SaveTribRecipient($data)
+    {
+        return $this->call('dp_tribAnon_AssocTribsToGift', static::prepareParams($data, [
+            'DonorId'   => ['numeric'], // The Donor ID number of the new tribute notification recipient. Example, if you are notifying Susan about Frank's gift, you would specify Susan's Donor_ID number here
+            'TributeID' => ['numeric'], // The ID number of the tribute
+            'GiftID'    => ['numeric'], // The Gift ID number of the gift this donor will be notified about. Per example above, you would specify the Gift_ID number of Fred's gift here.
+            'Level'     => 'L',
+        ]));
+    }
+
+    /**
+     * Create a tribute gift notification record for a person who is to be
+     * notified of a tribute. The tribute gift notification records added with
+     * this API call are for the notification recipient for this gift only
+     *
+     * The dp_tribNotif_Save API call should be run after the dp_tribAnon_SaveTribRecipient
+     * API call to make sure that the actual notification record is created for
+     * the recipient of the notification.
+     *
+     * Tribute gift notification records will show in the Linked Gift screen of
+     * the original gift (i.e.; the gift_id specified in the @glink field in a
+     * table called Linked Gifts. This table will include all notification gifts
+     * for all tributes linked to this gift.
+     *
+     * @param array $data
+     * @return integer The TributeID
+     */
+    public function dp_tribNotif_Save($data)
+    {
+        return $this->call('dp_tribNotif_Save', static::prepareParams($data, [
+            'Gift_ID'             => ['numeric'], // Enter 0 to create a new tribute gift notification record or the gift_id number of an existing tribute gift notification record if you are updating one.
+            'Donor_Id'            => ['numeric'], // The Donor ID number of the new notification record recipient. Please note that this may be a different donor than the person who gave the original tribute gift.
+            'glink'               => ['numeric'], // The Gift ID number of the gift this donor will be notified about
+            'tlink'               => ['numeric'], // The Tribute ID number of the tribute
+            'smount'              => ['money'], // Enter the amount of the gift
+            'total'               => ['money'], // Enter the amount of the gift
+            'bill'                => ['money'], // Enter 0.00
+            'start_date'          => null, // Date. Enter null
+            'frequency'           => null, // Varchar. Enter null
+            'gift_type'           => 'SN', // Enter 'SN'
+            'record_type'         => 'N', // Enter 'N' to indicate this is a notification record
+            'gl_code'             => ['string'], // Enter same value that was set for the original gift
+            'solicit_code'        => ['string'], // Enter same value that was set for the original gift
+            'sub_solicit_code'    => ['string'], // Enter same value that was set for the original gift
+            'campaign'            => ['string'], // Enter same value that was set for the original gift
+            'ty_letter_no'        => 'NT', // Varchar(30). Enter 'NT' for this field.
+            'fmv'                 => ['money'], // Enter same value that was set for the original gift
+            'reference'           => ['string'], // Enter SafeSave transaction record or null
+            'gfname'              => null, // Varchar(50) null
+            'glname'              => null, // Varchar(75) null
+            'gift_narrative'      => ['string', 4000], //(4000) If desired, enter gift narrative text
+            'membership_type'     => null, // Varchar. Null
+            'membership_level'    => null, // Varchar. Null
+            'membership_enr_date' => null, // Date. Null
+            'membership_exp_date' => null, // Date. Null
+            'address_id'          => ['numeric'], // Enter 0 unless the notification letter is to go to an address other than the one shown on the Main screen.
+            'user_id'             => $this->appName,
+        ]));
+    }
+
+    /**
+     * Update the list of recipients for all gifts that are associated with a
+     * particular tribute. This API call is different that the dp_tribAnon_SaveTribRecipient
+     * and dp_tribNotif_Save API calls which add a recipient to a tribute for one specified
+     * gift. It is API equivalent to the Add Recipient link in the Edit Tribute screen
+     *
+     * IMPORTANT: You need to first retrieve info on the existing tribute @recipients as you
+     * must include these in the dp_tribAnon_Update call otherwise they will no longer be
+     * associated with the tribute.
+     *
+     * It is not necessary to follow this API call with the dp_tribNotif_Save API call.
+     *
+     * @param array $data
+     * @return array
+     */
+    public function dp_tribAnon_Update($data)
+    {
+        return $this->call('dp_tribAnon_Update', static::prepareParams($data, [
+            'TributeID'    => ['numeric'], // Enter the ID number of the tribute you are updating
+            'name'         => ['string', 200], // Enter the existing name of the tribute to be updated. See Notes section below for example of a SELECT statement that will give you this info.
+            'dpcode_id'    => ['numeric'], // This is the numeric code_ID value that is associated with the tribute type. See Notes section below for example of a SELECT statement that will give you this info.
+            'ActiveFlg'    => ['bool'], // Set as 1 for True (active) or 0 for False (inactive)
+            'UserCreateDt' => ['date'], // Enter existing user create date in this format: 'MM/DD/YYYY'
+            'recipients'   => ['array'], // Enter the list of all existing and any new recipients using the pipe | symbol as a delimiter. ALSO, prefix the list with capital letter N and also wrap the recipients list in single quotes. Example: @recipients=N'105|43256|323387|137'
+        ]));
+    }
+
+    /**
+     * Insert DPO Payment Method values. This table is used on systems with the EFT Transactions
+     * feature enabled. This procedure will save a single parameter for a specified User Defined
+     * Field (UDF).
+     *
+     * This table would normally only be populated from an ecommerce API where the DPO system has
+     * EFT Transactions enabled.
+     *
+     * @param array $data
+     * @return integer DpPaymentMethodID
+     */
+    public function dp_PaymentMethod_Insert($data)
+    {
+        return $this->call('dp_PaymentMethod_Insert', static::prepareParams($data, [
+            'CustomerVaultID'            => ['string', 55], // Enter -0 to create a new Customer Vault ID record
+            'donor_id'                   => ['numeric'], //
+            'IsDefault'                  => ['bool'], // Enter 1 if this is will be the default EFT payment method
+            'AccountType'                => ['string', 256], // e.g. ‘Visa’
+            'dpPaymentMethodTypeID'      => ['string', 20], // e.g.; ‘creditcard’
+            'CardNumberLastFour'         => ['string', 16], // e.g.; ‘4xxxxxxxxxxx1111
+            'CardExpirationDate'         => ['string', 10], // e.g.; ‘0810’
+            'BankAccountNumberLastFour'  => ['string', 50], //
+            'NameOnAccount'              => ['string', 256], //
+            'CreatedDate'                => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'ModifiedDate'               => ['date'], // Set as 'MM/DD/YYYY' only. Setting time values is not supported.
+            'import_id'                  => ['numeric'], //
+            'created_by'                 => ['string', 20], //
+            'modified_by'                => ['string', 20], //
+            'selected_currency'          => ['string', 3], //
         ]));
     }
 }
