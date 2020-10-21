@@ -127,6 +127,8 @@ class DonorPerfect
         // Handle error messages
         if (array_key_exists('error', $response)) {
             throw new Exception($response['error']);
+        } elseif (isset($response['field']['@attributes']['value']) && $response['field']['@attributes']['value'] === 'false') {
+            throw new Exception($response['field']['@attributes']['reason']);
         }
 
         // Handle empty responses
