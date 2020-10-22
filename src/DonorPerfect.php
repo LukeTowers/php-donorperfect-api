@@ -100,9 +100,12 @@ class DonorPerfect
      */
     protected function callInternal(array $params)
     {
+        $args = [];
+        $relativeUrl = '?';
+
         // Assemble the API call
         if ($this->apiKey) {
-            $args['apikey'] = $this->apiKey;
+            $relativeUrl .= 'apikey=' . $this->apiKey . '&';
         } else {
             $args['login'] = $this->login;
             $args['pass'] = $this->pass;
@@ -110,13 +113,13 @@ class DonorPerfect
         $args = array_merge($args, $params);
 
         // Validate the API call before making it
-        $url = static::$baseUrl.'?'.http_build_query($args, null, '&', PHP_QUERY_RFC3986);
-        if (strlen($url) > 8000) {
+        $relativeUrl .= http_build_query($args, null, '&', PHP_QUERY_RFC3986);
+        if (strlen(static::$baseUrl . $relativeUrl) > 8000) {
             throw new Exception('The DonorPerfect API call exceeds the maximum length permitted (8000 characters)');
         }
 
         // Make the request
-        $response = (string) $this->client->request('GET', '', ['query' => $args])->getBody();
+        $response = (string) $this->client->request('GET', $relativeUrl)->getBody();
 
         // Fix values with invalid unescaped XML values
         $response = preg_replace('|(?Umsi)(value=\'DATE:.*\\R*\')|', 'value=\'\'', $response);
