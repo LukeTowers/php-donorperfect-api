@@ -105,6 +105,7 @@ class DonorPerfect
 
         // Assemble the API call
         if ($this->apiKey) {
+            // API key doesn't support being URL-encoded
             $relativeUrl .= 'apikey=' . $this->apiKey . '&';
         } else {
             $args['login'] = $this->login;
