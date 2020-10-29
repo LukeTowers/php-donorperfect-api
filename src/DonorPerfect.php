@@ -394,6 +394,59 @@ class DonorPerfect
     }
 
     /**
+     * Get all the tables present in the DP database
+     *
+     * @return array
+     */
+    public function getTables()
+    {
+        return $this->callSql("
+            SELECT
+                *
+            FROM
+                INFORMATION_SCHEMA.TABLES;
+        ");
+    }
+
+    /**
+     * Get all the columns present in the provided table
+     *
+     * @param string $table
+     * @return array
+     */
+    public function getColumns(string $table)
+    {
+        return $this->callSql("EXEC sp_columns $table");
+    }
+
+    /**
+     * Get an array with all the tables that have at least 1 row along with the number of rows present in the given table
+     *
+     * @return array
+     */
+    public function getTablesAndRowCounts()
+    {
+        return $this->callSql("
+            SELECT
+                t.NAME AS TableName,
+                p.rows AS RowCounts
+            FROM
+                sys.tables t
+            INNER JOIN
+                sys.indexes i ON t.OBJECT_ID = i.object_id
+            INNER JOIN
+                sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id
+            WHERE
+                t.is_ms_shipped = 0
+                AND p.rows > 0
+            GROUP BY
+                t.Name, p.Rows
+            ORDER BY
+                t.Name
+        ");
+    }
+
+    /**
      * List all available donors in the system.
      *
      * @return array
