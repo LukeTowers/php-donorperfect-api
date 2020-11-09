@@ -447,6 +447,71 @@ class DonorPerfect
     }
 
     /**
+     * List the available values from DPCODES for a given field name
+     *
+     * @param string $fieldName
+     * @return mixed
+     */
+    public function getFieldValues($fieldName)
+    {
+        $lastId = 0;
+        $finished = false;
+        $pageSize = 500;
+        $result = [];
+
+        do {
+            $response = $this->callSql("
+                SELECT TOP $pageSize
+                    *
+                FROM
+                    DPCODES
+                WHERE
+                    field_name = '$fieldName'
+                AND
+                    code_id > $lastId
+                ORDER BY
+                    code_id
+            ");
+
+            if (is_array($response)) {
+                $recordsReturned = count($response);
+                if ($recordsReturned > 0) {
+                    $result += $response;
+
+                    if ($recordsReturned < $pageSize) {
+                        $finished = true;
+                    } else {
+                        $lastId = end($response)->code_id;
+                    }
+                } else {
+                    $finished = true;
+                }
+            } else {
+                $finished = true;
+            }
+        } while (!$finished);
+
+        return $result;
+    }
+
+    /**
+     * Get all the data for the provided donor
+     *
+     * @param int $donorId
+     * @return array|null
+     */
+    public function getDonor($donorId)
+    {
+        return $this->callSql("
+            SELECT TOP 1
+                *
+            FROM
+                DP
+            WHERE donor_id = $donorId
+        ");
+    }
+
+    /**
      * List all available donors in the system.
      *
      * @return array
