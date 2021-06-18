@@ -1,6 +1,6 @@
 # About
 
-A simple PHP wrapper around the [DonorPerfect API](https://uploads.softerware.com/doclib/DP/Manuals/DPO_SUP_Manual_XML_API_Documentation.pdf). Currently targets DonorPerfect Online Version 2020.09.
+A simple PHP wrapper around the [DonorPerfect API](https://uploads.softerware.com/doclib/DP/Manuals/DPO_SUP_Manual_XML_API_Documentation.pdf). Currently targets DonorPerfect Online Version 2020.12.
 
 ## Installation
 
