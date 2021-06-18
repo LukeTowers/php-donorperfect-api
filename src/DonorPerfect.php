@@ -678,6 +678,7 @@ class DonorPerfect
             'split_gift'          => ['string', 1], // Set to 'Y' for each of the splits within a split gift but set to 'N' for the Main gift in a split gift or for any gift that is not a split gift.
             'pledge_payment'      => ['string', 1], //
             'reference'           => ['string', 100], // The associated SafeSave Transaction ID number is normally entered here.
+            'transaction_id'      => ['numeric'], // The associated SafeSave Transaction ID number is normally entered here. This field supersedes the @reference field which was previously used for this purpose.
             'memory_honor'        => ['string', 30], //
             'gfname'              => ['string', 50], //
             'glname'              => ['string', 75], //
@@ -687,7 +688,7 @@ class DonorPerfect
             'ty_letter_no'        => ['string', 30], // Note: If you are not setting a ty_letter_no code value in this field, set the field to null. Do not ever set this field to empty ('').
             'glink'               => ['numeric'], // In a split gift (not the Main), set the glink value to the gift_id value of the Main gift in the split Also, if you are creating a soft credit gift (record_type='S'), use the GLINK field to identify the gift_id of the actual gift. Note: If you are not setting a gift_id value in this field, set the field to null. Do not ever set this field to empty ('') or zero.
             'plink'               => ['numeric'], // This field should be blank for a nonrecurring gift but if you are creating a gift that is to be associated with a pledge, set the plink value of the gift to the gift_ID value of the associated pledge. Note: If you are not setting a gift_id value in this field, set the field to null. Do not ever set this field to empty ('') or zero.
-            'nocalc'              => ['string', 1], //
+            'nocalc'              => ['string', 1], // 	The standard value for this field is @nocalc='N'.  This field must be set to 'N' for gifts to be reflected in the reports dashboard.
             'receipt'             => ['string', 1], //
             'old_amount'          => ['money'], //
             'user_id'             => $this->appName,
@@ -696,6 +697,7 @@ class DonorPerfect
             'gift_aid_eligible_g' => ['string', 1], // This field relates to the UK based Gift Aid Program. See Supplemental Information > Gift Aid Program for more information.
             'currency'            => ['string', 3], // If you use the multi-currency feature, enter appropriate code value per your currency field – e.g; 'USD', 'CAD', etc.
             'receipt_delivery_g'  => ['string', 1], // This field sets receipt delivery preference for the specified gift. Supply one of the following single letter code values: • N = do not acknowledge • E = email • B = email and letter • L = letter
+            'acknowledgepref'     => ['string', 3], // Used in Canadian DonorPerfect systems to  indicate official receipt acknowledgement preference code: • 1AR – Acknowledge/Receipt • 2AD – Acknowledge / Do Not Receipt • 3DD – Do Not Acknowledge / Do Not Receipt
         ]));
     }
 
@@ -867,7 +869,7 @@ class DonorPerfect
             'field_name'        => ['string', 20], // Enter the name of an existing field type from the DPCODES table
             'code'              => ['string', 30], // Enter the new CODE value
             'description'       => ['string', 100], // Enter the description value that will appear in drop-down selection values
-            'original_code'     => ['string', 20], // Enter NULL
+            'original_code'     => ['string', 20], // Enter NULL unless you are updating an existing code.  In that case, set this field to the current (before update) value of the CODE
             'code_date'         => ['date'], // Enter NULL
             'mcat_hi'           => ['money'], // Enter NULL
             'mcat_lo'           => ['money'], // Enter NULL
@@ -875,7 +877,7 @@ class DonorPerfect
             'acct_num'          => ['string', 30], // Enter NULL
             'campaign'          => ['string', 30], // Enter NULL
             'solicit_code'      => ['string', 30], // Enter NULL
-            'overwrite'         => null,
+            'overwrite'         => null, // If you are creating a new code, set this field to NULL or 'N'.  If you are updating an existing code, set this to 'Y'.
             'inactive'          => ['string', 1], // Enter 'N' for an active code or 'Y' for an inactive code. Inactive codes are not offered in the user interface dropdown lists. Set @inactive='N' to indicate that this entry is Active and will appear in the appropriate drop-down field in the user interface.
             'client_id'         => null,
             'available_for_sol' => null,
@@ -928,6 +930,8 @@ class DonorPerfect
      * many checkboxes, there will only be an entry present in DPUSERMULTIVALUES for
      * checkboxes that are set (checked).
      *
+     * Recommendation: Consider using the mergemultivalues API call instead of this one.
+     *
      * @param array $data
      * @return integer donor_id of the affected donor
      */
@@ -979,6 +983,8 @@ class DonorPerfect
      * deleted.
      *
      * This API call removes ALL checked values from the specified DPO screen tab.
+     *
+     * Recommendation: Consider using the mergemultivalues API call instead of this one.
      *
      * @param array $data
      * @return integer donor_id of the affected donor
@@ -1077,7 +1083,7 @@ class DonorPerfect
             'DPCodeID'     => ['numeric'], // This is the numeric code_ID value that is associated with the tribute type. The standard values are M (In Memory Of) and H (In Honor Of) but you will not be specifying the letter value here but rather the numeric value of the code_ID. You can get the required @code_id value with this SQL SELECT query: SELECT CODE, CODE_ID, DESCRIPTION FROM DPCODES WHERE FIELD_NAME = 'MEMORY_HONOR' Run the query and record the CODE_ID values. They will not change for your DonorPerfect system. If you are connecting to multiple DonorPerfect systems, you will need to run this once for each system you are connecting to and store the values.
             'ActiveFlg'    => ['bool'], // Enter 1 here to make the tribute active or 0 to make it inactive.
             'UserCreateDt' => ['date'], // Enter the current date in this format: mm/dd/yyyy and place single quotes around the date. Entry of time values is NOT supported.
-            'Recipients'   => ['string'], // Enter either the donor_id of a single recipient OR multiple donor_id values separated by the pipe symbol and wrapped in single quotes. See examples below. The second example shows four donor ID numbers (11101, 22202, 33303, 44404) being assigned as Recipients and then in the Returns section below that, you can see the  names of the donors who correspond to those donor ID numbers. Note: It is possible to create a tribute without specifying any @recipients by omitting this parameter.
+            'Recipients'   => ['string'], // Enter either the donor_id of a single recipient OR multiple donor_id values separated by the pipe symbol and wrapped in single quotes. See examples below. The second example shows four donor ID numbers (11101, 22202, 33303, 44404) being assigned as Recipients and then in the Returns section below that, you can see the names of the donors who correspond to those donor ID numbers. Note: It is possible to create a tribute without specifying any @recipients by omitting this parameter. Any recipients specified here will be notified of all gifts to the tribute from the time that their recipient donor_id is added. (i.e.; if a new recipient is added later on, it won't notify them of gifts received before they are added)
         ]));
     }
 
@@ -1232,7 +1238,7 @@ class DonorPerfect
             'import_id'                  => ['numeric'], //
             'created_by'                 => ['string', 20], //
             'modified_by'                => ['string', 20], //
-            'selected_currency'          => ['string', 3], //
+            'selected_currency'          => ['string', 3], // e.g 'USD', 'CAD', per default currency used by the DonorPerfect client
         ]));
     }
 }
