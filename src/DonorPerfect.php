@@ -404,8 +404,19 @@ class DonorPerfect
             SELECT
                 *
             FROM
-                INFORMATION_SCHEMA.TABLES;
+                SYSOBJECTS
+            WHERE
+                xtype = 'U';
         ");
+
+        // Appears that DP has disabled the permissions required for the following query
+        // prior to 2021-07-15
+        // return $this->callSql("
+        //     SELECT
+        //         *
+        //     FROM
+        //         INFORMATION_SCHEMA.TABLES;
+        // ");
     }
 
     /**
