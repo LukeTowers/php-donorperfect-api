@@ -202,7 +202,7 @@ class DonorPerfect
         foreach ($parameters as $param => $value) {
             $value = trim($value);
 
-            if (is_numeric($value) && !str_contains($value, 'e')) {
+            if (is_numeric($value) && strpos($value, 'e') === false) {
                 $value = $value;
             } elseif (is_bool($value)) {
                 $value = $value ? '1' : '0';
