@@ -2,6 +2,14 @@
 
 class Schema
 {
+    protected $tables = [
+        'DPGIFT',
+        'DPGIFTUDF',
+    ];
+
+
+
+
     protected $schemas = [
         'DP' => ['columns' => [
             'donor_id'                => ['type' => 'numeric', 'nullable' => false],

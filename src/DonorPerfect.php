@@ -7,6 +7,12 @@ use GuzzleHttp\Client;
  * DonorPerfect API class
  *
  * Originally from https://github.com/MikeiLL/donorperfect-php & https://github.com/thinksaydo/donorperfect-php
+ *
+ * @TODO:
+ * - Implement better dp_savegift() method that only requires the essential data to record gifts and has proper
+ *   defaults set for all the other fields
+ * - Add ability to specify defaults that are instance specific but not transaction specific when instantiating
+ *   API object
  */
 class DonorPerfect
 {
@@ -301,7 +307,7 @@ class DonorPerfect
      */
     public static function prepareMoney($value)
     {
-        $value = $this->prepareNumeric($value);
+        $value = static::prepareNumeric($value);
 
         return number_format($value, 2, '.', '');
     }
