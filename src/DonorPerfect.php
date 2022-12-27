@@ -124,7 +124,6 @@ class DonorPerfect
         if (strlen(static::$baseUrl . $relativeUrl) > 8000) {
             throw new Exception('The DonorPerfect API call exceeds the maximum length permitted (8000 characters)');
         }
-
         // Make the request
         $response = (string) $this->client->request('GET', $relativeUrl)->getBody();
 
@@ -208,7 +207,8 @@ class DonorPerfect
         foreach ($parameters as $param => $value) {
             $value = trim($value);
 
-            if (is_numeric($value) && strpos($value, 'e') === false) {
+            if (is_numeric($value) && strpos($value, 'e') === false && strpos($value, '+') === false &&
+               $param != 'CardExpirationDate') {
                 $value = $value;
             } elseif (is_bool($value)) {
                 $value = $value ? '1' : '0';
@@ -218,8 +218,9 @@ class DonorPerfect
                 $value = "N'" . implode($value, '|') . "'";
             } else {
                 // Ensure quotes are doubled for escaping purposes
+                // + in param will be interpreted as a space and will generate an error
                 // @see https://api.warrenbti.com/2020/08/03/apostrophes-in-peoples-names/
-                $value = str_replace(["'", '"', '%'], ["''", '', '%25'], $value);
+                $value = str_replace(["'", '"', '%', '+'], ["''", '', '%25', ''], $value);
 
                 // Wrap the value in quotes
                 $value = "'$value'";
@@ -628,6 +629,11 @@ class DonorPerfect
      */
     public function dp_savedonor($data)
     {
+        // The nomail parameter is a required field for dp_savedonor. Make sure it is
+        // set properly and default to N if missing or invalid to prevent error.
+        if (!isset($data['nomail']) || $data['nomail'] != 'Y') $data['nomail'] = 'N';
+        // receipt delivery defaults to L if unspecified, make it explicit
+        if (!isset($data['receipt_delivery'])) $data['receipt_delivery'] = 'L';
         return $this->call('dp_savedonor', static::prepareParams($data, [
             'donor_id'        => ['numeric'], // Enter 0 (zero) to create a new donor/constituent record or an existing donor_id. Please note: If you are updating an existing donor, all existing values for the fields specified below will be overwritten by the values you send with this API call.
             'first_name'      => ['string', 50], //
@@ -656,6 +662,7 @@ class DonorPerfect
             'nomail_reason'   => ['string', 30], //
             'narrative'       => ['string', 2147483647], //
             'donor_rcpt_type' => ['string', 1], // 'I' for individual or 'C' for consolidated receipting preference
+            'receipt_delivery'=> ['string', 1], // 'B' for letter and email, 'L' for letter, 'E' email, 'N' do not acknowledge
             'user_id'         => $this->appName,
         ]));
     }
@@ -1243,7 +1250,7 @@ class DonorPerfect
         return $this->call('dp_PaymentMethod_Insert', static::prepareParams($data, [
             'CustomerVaultID'            => ['string', 55], // Enter -0 to create a new Customer Vault ID record
             'donor_id'                   => ['numeric'], //
-            'IsDefault'                  => ['bool'], // Enter 1 if this is will be the default EFT payment method
+            'IsDefault'                  => ['bool'], // Enter 1 if this is will be the default EFT payment method. Note anything other than 1 (i.e. 0 or NULL fails and not sure why)
             'AccountType'                => ['string', 256], // e.g. ‘Visa’
             'dpPaymentMethodTypeID'      => ['string', 20], // e.g.; ‘creditcard’
             'CardNumberLastFour'         => ['string', 16], // e.g.; ‘4xxxxxxxxxxx1111
