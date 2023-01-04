@@ -629,11 +629,15 @@ class DonorPerfect
      */
     public function dp_savedonor($data)
     {
-        // The nomail parameter is a required field for dp_savedonor. Make sure it is
-        // set properly and default to N if missing or invalid to prevent error.
-        if (!isset($data['nomail']) || $data['nomail'] != 'Y') $data['nomail'] = 'N';
-        // receipt delivery defaults to L if unspecified, make it explicit
-        if (!isset($data['receipt_delivery'])) $data['receipt_delivery'] = 'L';
+        // nomail is required for dp_savedonor, ensure it is present and valid
+        if (!isset($data['nomail']) || $data['nomail'] != 'Y') {
+            $data['nomail'] = 'N';
+        }
+        // receipt_delivery defaults to L if unspecified, make it explicit
+        if (!isset($data['receipt_delivery'])) {
+            $data['receipt_delivery'] = 'L';
+        }
+
         return $this->call('dp_savedonor', static::prepareParams($data, [
             'donor_id'        => ['numeric'], // Enter 0 (zero) to create a new donor/constituent record or an existing donor_id. Please note: If you are updating an existing donor, all existing values for the fields specified below will be overwritten by the values you send with this API call.
             'first_name'      => ['string', 50], //
