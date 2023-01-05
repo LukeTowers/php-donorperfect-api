@@ -121,6 +121,9 @@ class DonorPerfect
 
         // Validate the API call before making it
         $relativeUrl .= http_build_query($args, null, '&', PHP_QUERY_RFC3986);
+        // encode any + signs
+        $relativeUrl = str_replace('+', '%2B', $relativeUrl);
+
         if (strlen(static::$baseUrl . $relativeUrl) > 8000) {
             throw new Exception('The DonorPerfect API call exceeds the maximum length permitted (8000 characters)');
         }
@@ -207,8 +210,10 @@ class DonorPerfect
         foreach ($parameters as $param => $value) {
             $value = trim($value);
 
-            if (is_numeric($value) && strpos($value, 'e') === false && strpos($value, '+') === false &&
-               $param != 'CardExpirationDate') {
+            if (is_numeric($value)
+                && strpos($value, 'e') === false
+                && strpos($value, '+') === false
+                && $param != 'CardExpirationDate') {
                 $value = $value;
             } elseif (is_bool($value)) {
                 $value = $value ? '1' : '0';
@@ -218,9 +223,8 @@ class DonorPerfect
                 $value = "N'" . implode($value, '|') . "'";
             } else {
                 // Ensure quotes are doubled for escaping purposes
-                // + in param will be interpreted as a space and will generate an error
                 // @see https://api.warrenbti.com/2020/08/03/apostrophes-in-peoples-names/
-                $value = str_replace(["'", '"', '%', '+'], ["''", '', '%25', ''], $value);
+                $value = str_replace(["'", '"', '%'], ["''", '', '%25'], $value);
 
                 // Wrap the value in quotes
                 $value = "'$value'";
@@ -251,8 +255,21 @@ class DonorPerfect
      */
     public function callSql($sql)
     {
+        // Clean the sql of extra spaces and tabs
+        $cleansql = $sql;
+        $done = false;
+        do {
+          $cleansql_new = trim(str_ireplace(["\n", "\t", '  ', '  )'], [' ', '', ' ', ' )'], $cleansql));
+          if ($cleansql_new === $cleansql) {
+            $done = true;
+          }
+          else {
+            $cleansql = $cleansql_new;
+          }
+        } while (!$done);
+
         $params = [
-            'action' => trim(str_ireplace(["\n", "\t", '  ', '  )'], [' ', '', ' ', ' )'], $sql)),
+            'action' => $cleansql_new,
         ];
 
         return $this->callInternal($params);
@@ -629,11 +646,15 @@ class DonorPerfect
      */
     public function dp_savedonor($data)
     {
-        // The nomail parameter is a required field for dp_savedonor. Make sure it is
-        // set properly and default to N if missing or invalid to prevent error.
-        if (!isset($data['nomail']) || $data['nomail'] != 'Y') $data['nomail'] = 'N';
+        // nomail is required for dp_savedonor, ensure it is present and valid
+        if (!isset($data['nomail']) || $data['nomail'] != 'Y') {
+          $data['nomail'] = 'N';
+        }
         // receipt delivery defaults to L if unspecified, make it explicit
-        if (!isset($data['receipt_delivery'])) $data['receipt_delivery'] = 'L';
+        if (!isset($data['receipt_delivery'])) {
+          $data['receipt_delivery'] = 'L';
+        }
+
         return $this->call('dp_savedonor', static::prepareParams($data, [
             'donor_id'        => ['numeric'], // Enter 0 (zero) to create a new donor/constituent record or an existing donor_id. Please note: If you are updating an existing donor, all existing values for the fields specified below will be overwritten by the values you send with this API call.
             'first_name'      => ['string', 50], //
@@ -765,6 +786,8 @@ class DonorPerfect
             'vault_id'            => ['numeric'], // This field must be populated from the Vault ID number returned by SafeSave for the pledge to be listed as active in the user interface.
             'receipt_delivery_g'  => ['string', 1], // ‘E’ for email, ‘B’ for both email and letter, ‘L’ for letter, ‘N’ for do not acknowledge or NULL
             'contact_id'          => ['numeric'], // Or NULL
+            'acknowledgepref'     => ['string', 3],
+            'currency'            => ['string', 3]
         ]));
     }
 
