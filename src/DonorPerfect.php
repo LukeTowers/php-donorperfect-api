@@ -648,11 +648,19 @@ class DonorPerfect
     {
         // nomail is required for dp_savedonor, ensure it is present and valid
         if (!isset($data['nomail']) || $data['nomail'] != 'Y') {
+<<<<<<< HEAD
           $data['nomail'] = 'N';
         }
         // receipt delivery defaults to L if unspecified, make it explicit
         if (!isset($data['receipt_delivery'])) {
           $data['receipt_delivery'] = 'L';
+=======
+            $data['nomail'] = 'N';
+        }
+        // receipt_delivery defaults to L if unspecified, make it explicit
+        if (!isset($data['receipt_delivery'])) {
+            $data['receipt_delivery'] = 'L';
+>>>>>>> dae202008870d4b375720b6245989f84943e22e6
         }
 
         return $this->call('dp_savedonor', static::prepareParams($data, [
