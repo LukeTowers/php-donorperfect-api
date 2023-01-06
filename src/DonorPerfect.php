@@ -255,19 +255,24 @@ class DonorPerfect
      */
     public function callSql($sql)
     {
-        // Clean the sql of extra spaces and tabs
-        $cleansql = $sql;
-        $done = false;
-        do {
-          $cleansql_new = trim(str_ireplace(["\n", "\t", '  ', '  )'], [' ', '', ' ', ' )'], $cleansql));
-          if ($cleansql_new === $cleansql) {
-            $done = true;
-          }
-          else {
-            $cleansql = $cleansql_new;
-          }
-        } while (!$done);
+        // Remove all formatting whitespace while leaving whitespace that is part of value strings
+        $in_quote = false;
+        $output = '';
 
+        for ($i = 0; $i < strlen($sql); $i++) {
+            if ($sql[$i] == "'" || $sql[$i] == '"') {
+                $in_quote = !$in_quote;
+            }
+            if (($sql[$i] == ' ' || $sql[$i] == "\n" || $sql[$i] == "\r") && !$in_quote) {
+                if (empty($output) || substr($output, -1) == ' ') {
+                    continue;
+                }
+                $output .= ' ';
+            } else {
+                $output .= $sql[$i];
+            }
+        }
+        
         $params = [
             'action' => $cleansql_new,
         ];
