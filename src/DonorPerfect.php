@@ -272,9 +272,9 @@ class DonorPerfect
                 $output .= $sql[$i];
             }
         }
-        
+
         $params = [
-            'action' => $cleansql_new,
+            'action' => $output
         ];
 
         return $this->callInternal($params);
