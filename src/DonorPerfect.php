@@ -210,10 +210,12 @@ class DonorPerfect
         foreach ($parameters as $param => $value) {
             $value = trim($value);
 
-            if (is_numeric($value)
+            if (
+                is_numeric($value)
                 && strpos($value, 'e') === false
                 && strpos($value, '+') === false
-                && $param != 'CardExpirationDate') {
+                && $param != 'CardExpirationDate'
+            ) {
                 $value = $value;
             } elseif (is_bool($value)) {
                 $value = $value ? '1' : '0';
@@ -246,6 +248,48 @@ class DonorPerfect
     }
 
     /**
+     * Trim the provided SQL statement to remove all extra whitespace from the logic while retaining
+     * any whitespace inside of quoted values.
+     */
+    protected static function trimSql(string $sql): string
+    {
+        $inQuote = null;
+        $output = '';
+        $quoteChars = ['"', "'"];
+        $whitespaceChars = [' ', "\n", "\r", "\t"];
+
+        for ($i = 0; $i < strlen($sql); $i++) {
+            $currentChar = $sql[$i];
+            if (
+                // Check if the character is a quote
+                in_array($currentChar, $quoteChars)
+                // Check if the character matches the current quote context
+                && (is_null($inQuote) || $currentChar === $inQuote)
+                // Check if the character was escaped
+                && ($i > 0 && $sql[$i - 1] !== "\\")
+            ) {
+                $inQuote = is_null($inQuote) ? $currentChar : null;
+            }
+            if (
+                in_array($currentChar, $whitespaceChars)
+                && is_null($inQuote)
+            ) {
+                if (
+                    empty($output)
+                    || substr($output, -1) == ' '
+                ) {
+                    continue;
+                }
+                $output .= ' ';
+            } else {
+                $output .= $currentChar;
+            }
+        }
+
+        return trim($output);
+    }
+
+    /**
      * Make a SQL call to the DonorPerfect API.
      *
      * @param string $sql The raw SQL to send to the API. Any user provided values should be properly
@@ -256,25 +300,10 @@ class DonorPerfect
     public function callSql($sql)
     {
         // Remove all formatting whitespace while leaving whitespace that is part of value strings
-        $in_quote = false;
-        $output = '';
-
-        for ($i = 0; $i < strlen($sql); $i++) {
-            if ($sql[$i] == "'" || $sql[$i] == '"') {
-                $in_quote = !$in_quote;
-            }
-            if (($sql[$i] == ' ' || $sql[$i] == "\n" || $sql[$i] == "\r") && !$in_quote) {
-                if (empty($output) || substr($output, -1) == ' ') {
-                    continue;
-                }
-                $output .= ' ';
-            } else {
-                $output .= $sql[$i];
-            }
-        }
+        $sql = static::trimSql($sql);
 
         $params = [
-            'action' => $output
+            'action' => $sql,
         ];
 
         return $this->callInternal($params);
