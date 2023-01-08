@@ -214,7 +214,6 @@ class DonorPerfect
                 is_numeric($value)
                 && strpos($value, 'e') === false
                 && strpos($value, '+') === false
-                && $param != 'CardExpirationDate'
             ) {
                 $value = $value;
             } elseif (is_bool($value)) {
@@ -315,7 +314,7 @@ class DonorPerfect
      * @param mixed $value  The value to prepare
      * @param int   $maxlen The maximum length of the string
      * @throws Exception if the provided value is longer than the max allowed length
-     * @return string
+     * @return object (Annonymous class that implements __toString and holds the string value)
      */
     public static function prepareString($value, int $maxlen = null)
     {
@@ -325,7 +324,20 @@ class DonorPerfect
             throw new Exception("$value is longer than the max allowed length of $maxlen");
         }
 
-        return $value;
+        // Returns as an anonymous class that implements __toString in order to ensure
+        // that numeric values that have been explicitly declared as strings are not
+        // converted to integers when processed in the call() method.
+        return new class($value) {
+            protected string $value;
+            public function __construct(string $value)
+            {
+                $this->value = $value;
+            }
+            public function __toString()
+            {
+                return $this->value;
+            }
+        };
     }
 
     /**
