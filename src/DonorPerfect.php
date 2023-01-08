@@ -792,7 +792,7 @@ class DonorPerfect
             'receipt_delivery_g'  => ['string', 1], // ‘E’ for email, ‘B’ for both email and letter, ‘L’ for letter, ‘N’ for do not acknowledge or NULL
             'contact_id'          => ['numeric'], // Or NULL
             'acknowledgepref'     => ['string', 3],
-            'currency'            => ['string', 3]
+            'currency'            => ['string', 3],
         ]));
     }
 
