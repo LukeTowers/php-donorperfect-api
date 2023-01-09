@@ -208,11 +208,12 @@ class DonorPerfect
         $paramString = '';
         $i = 0;
         foreach ($parameters as $param => $value) {
-            $original = $value;
-            $value = trim($value);
+            if (is_string($value)) {
+                $value = trim($value);
+            }
 
             if (
-                !is_object($original)
+                !is_object($value)
                 && is_numeric($value)
                 && strpos($value, 'e') === false
                 && strpos($value, '+') === false
