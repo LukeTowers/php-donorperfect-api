@@ -121,8 +121,6 @@ class DonorPerfect
 
         // Validate the API call before making it
         $relativeUrl .= http_build_query($args, null, '&', PHP_QUERY_RFC3986);
-        // encode any + signs
-        $relativeUrl = str_replace('+', '%2B', $relativeUrl);
 
         if (strlen(static::$baseUrl . $relativeUrl) > 8000) {
             throw new Exception('The DonorPerfect API call exceeds the maximum length permitted (8000 characters)');
