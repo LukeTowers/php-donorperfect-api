@@ -838,6 +838,7 @@ class DonorPerfect
             'contact_id'          => ['numeric'], // Or NULL
             'acknowledgepref'     => ['string', 3],
             'currency'            => ['string', 3],
+            'rcpt_type'           => ['string', 1] // C for consolidated or I for individual or NULL for unset
         ]));
     }
 
