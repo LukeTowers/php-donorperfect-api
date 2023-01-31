@@ -226,7 +226,7 @@ class DonorPerfect
             } else {
                 // Ensure wrapped string values are still trimmed
                 $value = trim($value);
-            
+
                 // Ensure quotes are doubled for escaping purposes
                 // @see https://api.warrenbti.com/2020/08/03/apostrophes-in-peoples-names/
                 $value = str_replace(["'", '"', '%'], ["''", '', '%25'], $value);
