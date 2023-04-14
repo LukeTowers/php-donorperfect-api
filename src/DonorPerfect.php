@@ -120,7 +120,7 @@ class DonorPerfect
         $args = array_merge($args, $params);
 
         // Validate the API call before making it
-        $relativeUrl .= http_build_query($args, null, '&', PHP_QUERY_RFC3986);
+        $relativeUrl .= http_build_query($args, '', '&', PHP_QUERY_RFC3986);
 
         if (strlen(static::$baseUrl . $relativeUrl) > 8000) {
             throw new Exception('The DonorPerfect API call exceeds the maximum length permitted (8000 characters)');
@@ -226,7 +226,7 @@ class DonorPerfect
             } else {
                 // Ensure wrapped string values are still trimmed
                 $value = trim($value);
-            
+
                 // Ensure quotes are doubled for escaping purposes
                 // @see https://api.warrenbti.com/2020/08/03/apostrophes-in-peoples-names/
                 $value = str_replace(["'", '"', '%'], ["''", '', '%25'], $value);
@@ -838,6 +838,7 @@ class DonorPerfect
             'contact_id'          => ['numeric'], // Or NULL
             'acknowledgepref'     => ['string', 3],
             'currency'            => ['string', 3],
+            'rcpt_type'           => ['string', 1] // C for consolidated or I for individual or NULL for unset
         ]));
     }
 
